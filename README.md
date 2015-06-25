@@ -13,8 +13,8 @@ This is a barebones application to query Windows services:
 package main
 
 import (
-	"code.google.com/p/com-and-go/v2"
-	"github.com/a-palchikov/wmi"
+	"github.com/tianlin/com-and-go/v2"
+	"github.com/tianlin/wmi"
 	"fmt"
 	"log"
 	"unsafe"
