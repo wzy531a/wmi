@@ -34,11 +34,36 @@ type (
 		com.IUnknown
 	}
 	EnumWbemClassObject struct {
-		enum   *IEnumWbemClassObject
+		Enum   *IEnumWbemClassObject
 		clsobj *IWbemClassObject
 		err    error
 	}
 )
+
+func (d *IWbemLocator) ConnectRemoteServer(resource string, user string, password string) (svc *IWbemServices, err error) {
+	res := com.ToBStr(resource)
+	defer res.Free()
+
+	uid := com.ToBStr(user)
+	defer uid.Free()
+
+	pwd := com.ToBStr(password)
+	defer pwd.Free()
+
+	args := &struct {
+		d         *IWbemLocator
+		resource  com.BStr
+		uid       com.BStr
+		pwd       com.BStr
+		locale    com.BStr
+		flags     int
+		authority com.BStr
+		ctx       *uint32 // *IWbemContext, assumed nil here
+		svc       **IWbemServices
+	}{d, res, uid, pwd, NilStr, 0, NilStr, nil, &svc}
+	err = d.VTable[3].CallHR(unsafe.Pointer(args), 9)
+	return
+}
 
 func (d *IWbemLocator) ConnectServerErr(resource string) (svc *IWbemServices, err error) {
 	res := com.ToBStr(resource)
@@ -79,7 +104,7 @@ func (d *IWbemServices) ExecQueryErr(queryL, query string, flags int) (enum Enum
 		enum                 **IEnumWbemClassObject
 	}{d, qL, q, flags, nil, &enm}
 	err = d.VTable[20].CallHR(unsafe.Pointer(args), 6)
-	enum.enum = enm
+	enum.Enum = enm
 	return
 }
 
@@ -109,7 +134,7 @@ func (d *EnumWbemClassObject) Release() {
 		d.clsobj.Release()
 		d.clsobj = nil
 	}
-	d.enum.Release()
+	d.Enum.Release()
 }
 
 func (d *EnumWbemClassObject) Next(timeout int, count uint32) (ok bool) {
@@ -118,7 +143,7 @@ func (d *EnumWbemClassObject) Next(timeout int, count uint32) (ok bool) {
 		d.clsobj = nil
 	}
 	var n uint32
-	d.clsobj, n, d.err = d.enum.NextErr(timeout, count)
+	d.clsobj, n, d.err = d.Enum.NextErr(timeout, count)
 	if n == 0 { // No more items
 		d.err = nil
 		if d.clsobj != nil {
@@ -181,13 +206,13 @@ func CoInitializeSecurity(secDesc *uint32, numAuthSvc int, authSvc *uint32,
 }
 
 func CoSetProxyBlanket(proxy *com.IUnknown, authnSvc, authzSvc uint32, serverPrincName com.BStr,
-	authnLevel, impLevel uint32, authInfo *uint32, caps uint32) error {
+	authnLevel, impLevel uint32, authInfo unsafe.Pointer, caps uint32) error {
 	args := &struct {
 		proxy               *com.IUnknown
 		authnSvc, authzSvc  uint32
 		serverPrincName     com.BStr
 		authLevel, impLevel uint32
-		authInfo            *uint32
+		authInfo            unsafe.Pointer
 		caps                uint32
 	}{proxy, authnSvc, authzSvc, serverPrincName, authnLevel, impLevel, authInfo, caps}
 	return coSetProxyBlanket.CallHR(unsafe.Pointer(args), 8)
@@ -281,4 +306,9 @@ const (
 const (
 	WBEM_NO_WAIT  = 0
 	WBEM_INFINITE = -1
+)
+
+const (
+	SEC_WINNT_AUTH_IDENTITY_ANSI    = 0x1
+	SEC_WINNT_AUTH_IDENTITY_UNICODE = 0x2
 )
