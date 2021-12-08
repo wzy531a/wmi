@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"github.com/tianlin/com-and-go/v2"
-	"github.com/tianlin/wmi"
+	"github.com/wzy531a/com-and-go/v2"
+	"github.com/wzy531a/wmi"
 	"log"
 	"unsafe"
 )
